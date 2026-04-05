@@ -1,0 +1,71 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь", "")
+System_Ext(device, "Умные устройства партнeров", "")
+
+System_Boundary(clients, "Клиентские приложения") {
+    Container(mobile_app, "Мобильное приложение", "iOS/Android", "Интерфейс для управления")
+    Container(web_app, "Веб-версия", "React/Vue", "Интерфейс для управления")
+}
+
+Container(file_storage, "Хранилище файлов", "MinIO", "Видео, бэкапы, медиафайлы")
+Container(message_broker, "Брокер сообщений", "RabbitMQ ", "Асинхронное взаимодействие")
+
+System_Boundary(smart_home_ecosystem, "Экосистема умного дома") {
+    Container(api_gateway_service, "API Gateway", "Go", "Точка входа приложения")
+    Container(real_estate_service, "Управление объектами недвижимости", "Go", "Объекты недвижимости пользователя")
+    Container(device_registry_service, "Реестр устройств объекта", "Go", "Конфигурация, статус, показатели зарегистрированных устройств")
+    Container(auth_service, "Сервис аутентификации", "Go", "OAuth2, JWT")
+
+    Container(heating_control, "Управление отоплением", "Go", "Логика управления отоплением")
+    Container(lighting_control, "Управление освещением", "Go", "Включение/выключение света")
+    Container(gate_control, "Управление воротами", "Go", "Открытие/закрытие ворот")
+    Container(cctv_monitoring, "Видеонаблюдение", "Python", "Потоковое видео, хранение записей")
+}
+
+System_Boundary(databases, "Базы данных") {
+    ContainerDb(db_auth, "БД Auth", "PostgreSQL", "Данные пользователей, токены")
+    ContainerDb(db_real_estate, "БД Объектов недвижимости", "PostgreSQL", "Объекты недвижимости")
+    ContainerDb(db_device_registry, "БД Реестра устройств", "PostgreSQL", "Устройства, статусы, показатели")
+    ContainerDb(db_heating, "БД Отопления", "PostgreSQL", "Настройки и история использования")
+    ContainerDb(db_lighting, "БД Освещения", "PostgreSQL", "Настройки и история использования")
+    ContainerDb(db_gate, "БД Ворот", "PostgreSQL", "Настройки и история использования")
+    ContainerDb(db_cctv, "БД Видеонаблюдения", "PostgreSQL", "Метаданные видео")
+}
+
+' Взаимодействие между сервисами
+Rel(user, mobile_app, "")
+Rel(user, web_app, "")
+Rel(mobile_app, api_gateway_service, "")
+Rel(web_app, api_gateway_service, "")
+
+api_gateway_service <---> auth_service : ""
+api_gateway_service <---> real_estate_service : ""
+api_gateway_service <---> device_registry_service : ""
+Rel(real_estate_service, device_registry_service, "")
+Rel(api_gateway_service, heating_control, "")
+Rel(api_gateway_service, lighting_control, "")
+Rel(api_gateway_service, gate_control, "")
+Rel(api_gateway_service, cctv_monitoring, "")
+
+Rel(heating_control, device, "")
+Rel(lighting_control, device, "")
+Rel(gate_control, device, "")
+Rel(cctv_monitoring, device, "")
+
+' Интеграция с брокером сообщений
+Rel(device, message_broker, "")
+Rel(message_broker, device_registry_service, "")
+
+' Взаимодействие с БД
+auth_service <--> db_auth : ""
+real_estate_service <--> db_real_estate : ""
+device_registry_service <--> db_device_registry : ""
+heating_control <--> db_heating : ""
+lighting_control <--> db_lighting : ""
+gate_control <--> db_gate : ""
+cctv_monitoring <--> db_cctv : ""
+cctv_monitoring <--> file_storage : ""
+
+@enduml

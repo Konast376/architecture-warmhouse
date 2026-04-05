@@ -1,0 +1,146 @@
+@startuml
+!theme plain
+
+' Нотация: сущности, атрибуты, первичные ключи (PK), внешние (FK)
+entity "User" as user {
+  * id : UUID <<PK>>
+  --
+  * email : VARCHAR
+  * password_hash : VARCHAR
+  name : VARCHAR
+  created_at : TIMESTAMP
+}
+
+entity "Token" as token {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * token : VARCHAR
+  expires_at : TIMESTAMP
+}
+
+entity "RealEstate" as estate {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  name : VARCHAR
+  address : TEXT
+  created_at : TIMESTAMP
+}
+
+entity "Device" as device {
+  * id : UUID <<PK>>
+  --
+  * real_estate_id : UUID <<FK>>
+  type : VARCHAR
+  name : VARCHAR
+  status : VARCHAR
+  last_seen : TIMESTAMP
+}
+
+entity "DeviceMetric" as metric {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  metric_type : VARCHAR
+  value : VARCHAR
+  timestamp : TIMESTAMP
+}
+
+entity "HeatingSettings" as heat_set {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  target_temp : DECIMAL
+  schedule : JSON
+  mode : VARCHAR
+}
+
+entity "HeatingHistory" as heat_hist {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  timestamp : TIMESTAMP
+  actual_temp : DECIMAL
+  energy_used : DECIMAL
+}
+
+entity "LightingSettings" as light_set {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  brightness : INT
+  color : VARCHAR
+  schedule : JSON
+}
+
+entity "LightingHistory" as light_hist {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  timestamp : TIMESTAMP
+  action : VARCHAR
+  brightness : INT
+}
+
+entity "GateSettings" as gate_set {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  auto_close : BOOLEAN
+  status : VARCHAR
+}
+
+entity "GateHistory" as gate_hist {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  timestamp : TIMESTAMP
+  action : VARCHAR
+}
+
+entity "Camera" as camera {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  name : VARCHAR
+  location : VARCHAR
+  stream_url : VARCHAR
+}
+
+entity "VideoRecord" as video {
+  * id : UUID <<PK>>
+  --
+  * camera_id : UUID <<FK>>
+  file_path : VARCHAR
+  start_time : TIMESTAMP
+  end_time : TIMESTAMP
+  size_bytes : BIGINT
+}
+
+' Связи между сущностями (логические FK)
+user ||--o{ token : "has"
+user ||--o{ estate : "owns"
+
+estate ||--o{ device : "contains"
+
+device ||--o{ metric : "produces"
+device -- heat_set : "configured by"
+device ||--o{ heat_hist : "logs"
+device -- light_set : "configured by"
+device ||--o{ light_hist : "logs"
+device -- gate_set : "configured by"
+device ||--o{ gate_hist : "logs"
+device -- camera : "represents"
+
+camera ||--o{ video : "recorded as"
+
+note right of user : Сервис аутентификации\n(БД Auth)
+note right of estate : Управление недвижимостью\n(БД Объектов)
+note right of device : Реестр устройств\n(БД Реестра)
+note right of heat_set : Управление отоплением\n(БД Отопления)
+note right of light_set : Управление освещением\n(БД Освещения)
+note right of gate_set : Управление воротами\n(БД Ворот)
+note right of camera : Видеонаблюдение\n(БД Видеонаблюдения)
+
+@enduml

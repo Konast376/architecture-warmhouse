@@ -1,0 +1,21 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения")
+System_Ext(device, "Умные устройства партнeров", "")
+
+System_Boundary(heating_control, "Управление отоплением", "Go", "Логика управления отоплением") {
+    Component(heating_control_controller, "Heating Controller", "Go", "Контроллер управления отоплением")
+    Component(heating_control_component, "Heating Control Component", "Go", "Сервис, реализующий логику работы с устройством отопления")
+    Component(device_client, "Device Client", "Go", "Клиент управления устройством отопления")
+}
+
+ContainerDb(db_heating, "БД Отопления", "PostgreSQL", "Настройки и история использования")
+
+Rel(api_gateway_service, heating_control_controller, "")
+Rel(heating_control_controller, heating_control_component, "")
+Rel(heating_control_component, device_client, "")
+Rel(device_client, device, "")
+Rel(heating_control_component, db_heating, "")
+
+@enduml

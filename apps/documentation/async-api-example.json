@@ -1,0 +1,176 @@
+{
+  "asyncapi": "2.6.0",
+  "id": "urn:io:smarthome:asyncapi:device-metrics",
+  "info": {
+    "title": "Smart Home Device Metrics",
+    "version": "1.0.0",
+    "description": "Асинхронное взаимодействие через RabbitMQ для сбора телеметрии с устройств.\nУмные устройства партнёров публикуют метрики (температура, влажность, энергопотребление и др.),\nа сервис реестра устройств и, опционально, другие сервисы (управления) подписываются на эти данные\nдля обновления состояния и аналитики."
+  },
+  "servers": {
+    "production": {
+      "url": "amqp://rabbitmq.smarthome.internal:5672",
+      "protocol": "amqp",
+      "protocolVersion": "0-9-1",
+      "description": "RabbitMQ кластер в приватной сети",
+      "security": [
+        {
+          "basicAuth": []
+        }
+      ]
+    }
+  },
+  "defaultContentType": "application/json",
+  "channels": {
+    "device.metrics": {
+      "description": "Канал для публикации метрик с устройств. Каждое сообщение содержит один показатель.\nУстройства отправляют данные асинхронно, не дожидаясь ответа.",
+      "publish": {
+        "summary": "Публикация метрики устройства",
+        "operationId": "publishDeviceMetric",
+        "message": {
+          "$ref": "#/components/messages/DeviceMetric"
+        },
+        "bindings": {
+          "amqp": {
+            "exchange": {
+              "name": "device.exchange",
+              "type": "topic",
+              "durable": true
+            },
+            "routingKey": "device.metrics.{deviceType}"
+          }
+        }
+      },
+      "subscribe": {
+        "summary": "Подписка на метрики устройств",
+        "operationId": "consumeDeviceMetric",
+        "message": {
+          "$ref": "#/components/messages/DeviceMetric"
+        },
+        "bindings": {
+          "amqp": {
+            "queue": {
+              "name": "device.registry.metrics",
+              "durable": true,
+              "autoDelete": false
+            },
+            "bindingKey": "device.metrics.*",
+            "exclusive": false
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "DeviceMetric": {
+        "name": "DeviceMetric",
+        "title": "Метрика устройства",
+        "summary": "Отдельное измерение (температура, влажность, заряд батареи и т.п.)",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/DeviceMetricPayload"
+        },
+        "examples": [
+          {
+            "name": "Temperature reading",
+            "summary": "Показание температуры от термостата",
+            "payload": {
+              "device_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "metric_type": "temperature",
+              "value": 22.5,
+              "unit": "celsius",
+              "timestamp": "2025-03-15T08:22:10Z"
+            }
+          },
+          {
+            "name": "Humidity reading",
+            "summary": "Показание влажности от датчика",
+            "payload": {
+              "device_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "metric_type": "humidity",
+              "value": 55,
+              "unit": "percent",
+              "timestamp": "2025-03-15T08:22:11Z"
+            }
+          },
+          {
+            "name": "Power consumption",
+            "summary": "Мощность отопления",
+            "payload": {
+              "device_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "metric_type": "power",
+              "value": 180.2,
+              "unit": "watt",
+              "timestamp": "2025-03-15T08:22:12Z"
+            }
+          }
+        ]
+      }
+    },
+    "schemas": {
+      "DeviceMetricPayload": {
+        "type": "object",
+        "required": ["device_id", "metric_type", "value", "timestamp"],
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Уникальный идентификатор устройства (из реестра)",
+            "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+          },
+          "metric_type": {
+            "type": "string",
+            "description": "Тип метрики",
+            "enum": ["temperature", "humidity", "power", "battery", "pressure", "energy_used"],
+            "example": "temperature"
+          },
+          "value": {
+            "oneOf": [
+              { "type": "number", "description": "Числовое значение" },
+              { "type": "string", "description": "Строковое значение (например, состояние)" }
+            ],
+            "example": 22.5
+          },
+          "unit": {
+            "type": "string",
+            "description": "Единица измерения (опционально, но желательно)",
+            "example": "celsius"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Время измерения (ISO 8601)",
+            "example": "2025-03-15T08:22:10Z"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Дополнительная информация (версия прошивки, RSSI и пр.)",
+            "additionalProperties": true,
+            "example": {
+              "rssi": -45,
+              "firmware": "2.1.0"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "userPassword",
+        "description": "Логин/пароль для подключения к RabbitMQ"
+      }
+    }
+  },
+  "x-availability": {
+    "producer": "Умные устройства партнёров (через шлюз или MQTT bridge)",
+    "description": "Устройства отправляют метрики в брокер RabbitMQ с помощью предварительно сконфигурированных роутингов.",
+    "consumer": "device_registry_service",
+    "description_consumer": "Сервис реестра устройств подписан на очередь device.registry.metrics и обновляет статус, метрики и показатели в БД.",
+    "optionalConsumer": "heating_control / lighting_control / gate_control",
+    "description_optional": "При необходимости сервисы управления могут подписываться на специфичные метрики (например, temperature) для локальной адаптации."
+  },
+  "tags": [
+    { "name": "telemetry", "description": "Поток телеметрии с устройств" },
+    { "name": "device registry", "description": "Сервис, потребляющий метрики" }
+  ]
+}

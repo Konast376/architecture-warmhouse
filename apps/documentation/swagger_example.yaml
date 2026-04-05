@@ -1,0 +1,813 @@
+openapi: 3.0.0
+info:
+  title: Smart Home API Gateway
+  description: API для управления умным домом (недвижимость, устройства, отопление, освещение, ворота, видеонаблюдение)
+  version: 1.0.0
+servers:
+  - url: https://api.smarthome.example/v1
+    description: Production server
+security:
+  - BearerAuth: []
+paths:
+  # ==================== AUTH SERVICE ====================
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Регистрация нового пользователя
+      description: Создаёт учётную запись пользователя. В ответ выдаёт JWT-токен для доступа к API.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                name: { type: string }
+            examples:
+              user_registration:
+                summary: Пример регистрации нового пользователя
+                value:
+                  email: "ivan@example.com"
+                  password: "securePass123"
+                  name: "Иван Петров"
+      responses:
+        '201':
+          description: Успешная регистрация – возвращён access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  token_type: { type: string, default: "Bearer" }
+                  expires_in: { type: integer }
+              examples:
+                success:
+                  summary: Успешный ответ
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 3600
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Вход в систему
+      description: Аутентификация существующего пользователя. Возвращает JWT-токен.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+            examples:
+              user_login:
+                summary: Пример логина
+                value:
+                  email: "ivan@example.com"
+                  password: "securePass123"
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  token_type: { type: string }
+                  expires_in: { type: integer }
+              examples:
+                success:
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 3600
+        '401':
+          description: Неверные учётные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_creds:
+                  value:
+                    code: 401
+                    message: "Invalid email or password"
+
+  # ==================== REAL ESTATE SERVICE ====================
+  /estates:
+    get:
+      tags: [Real Estate]
+      summary: Список объектов недвижимости пользователя
+      description: Возвращает все объекты недвижимости, принадлежащие авторизованному пользователю.
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RealEstate'
+              examples:
+                estates_list:
+                  summary: Список объектов
+                  value:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      user_id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+                      name: "Загородный дом"
+                      address: "Московская обл., д. Лесная, ул. Цветочная, 5"
+                      created_at: "2025-01-15T10:30:00Z"
+                    - id: "550e8400-e29b-41d4-a716-446655440001"
+                      user_id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+                      name: "Квартира в центре"
+                      address: "г. Москва, ул. Тверская, д. 12, кв. 45"
+                      created_at: "2025-02-20T14:15:00Z"
+    post:
+      tags: [Real Estate]
+      summary: Создать новый объект недвижимости
+      description: Добавляет новый объект недвижимости (дом, квартиру, офис) для текущего пользователя.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                address: { type: string }
+            examples:
+              new_estate:
+                summary: Новый загородный дом
+                value:
+                  name: "Дача в Подмосковье"
+                  address: "МО, Истринский р-н, д. Глебово, ул. Садовая, 10"
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealEstate'
+              examples:
+                created:
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440002"
+                    user_id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+                    name: "Дача в Подмосковье"
+                    address: "МО, Истринский р-н, д. Глебово, ул. Садовая, 10"
+                    created_at: "2025-03-01T09:00:00Z"
+  /estates/{estateId}:
+    get:
+      tags: [Real Estate]
+      summary: Получить объект по ID
+      description: Возвращает детальную информацию об одном объекте недвижимости.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: estateId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: UUID объекта недвижимости
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealEstate'
+              examples:
+                estate_details:
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    user_id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+                    name: "Загородный дом"
+                    address: "Московская обл., д. Лесная, ул. Цветочная, 5"
+                    created_at: "2025-01-15T10:30:00Z"
+        '404':
+          description: Объект не найден
+
+  # ==================== DEVICE REGISTRY SERVICE ====================
+  /devices:
+    get:
+      tags: [Devices]
+      summary: Список устройств
+      description: Возвращает все устройства, зарегистрированные в системе. Можно фильтровать по объекту недвижимости.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: estateId
+          in: query
+          schema: { type: string, format: uuid }
+          description: Фильтр по объекту недвижимости (опционально)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+              examples:
+                devices_for_estate:
+                  summary: Устройства для загородного дома
+                  value:
+                    - id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                      real_estate_id: "550e8400-e29b-41d4-a716-446655440000"
+                      type: "heater"
+                      name: "Термостат гостиной"
+                      status: "online"
+                      last_seen: "2025-03-15T08:22:10Z"
+                    - id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"
+                      real_estate_id: "550e8400-e29b-41d4-a716-446655440000"
+                      type: "light"
+                      name: "Свет в кухне"
+                      status: "online"
+                      last_seen: "2025-03-15T08:20:00Z"
+    post:
+      tags: [Devices]
+      summary: Зарегистрировать новое устройство
+      description: Добавляет устройство (датчик или исполнитель) в реестр. Устройство должно принадлежать существующему объекту недвижимости.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [real_estate_id, type, name]
+              properties:
+                real_estate_id: { type: string, format: uuid }
+                type: { type: string, enum: [heater, light, gate, camera] }
+                name: { type: string }
+            examples:
+              new_heater:
+                summary: Регистрация нового термостата
+                value:
+                  real_estate_id: "550e8400-e29b-41d4-a716-446655440000"
+                  type: "heater"
+                  name: "Термостат спальни"
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                registered:
+                  value:
+                    id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13"
+                    real_estate_id: "550e8400-e29b-41d4-a716-446655440000"
+                    type: "heater"
+                    name: "Термостат спальни"
+                    status: "offline"
+                    last_seen: null
+  /devices/{deviceId}/metrics:
+    get:
+      tags: [Devices]
+      summary: Получить метрики устройства
+      description: Возвращает последние показатели с датчиков устройства (температура, влажность, потребление энергии и т.д.).
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: UUID устройства
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+          description: Количество последних записей
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceMetric'
+              examples:
+                metrics:
+                  summary: Последние показания температуры
+                  value:
+                    - id: "m1"
+                      device_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                      metric_type: "temperature"
+                      value: "22.5"
+                      timestamp: "2025-03-15T08:20:00Z"
+                    - id: "m2"
+                      device_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                      metric_type: "temperature"
+                      value: "22.3"
+                      timestamp: "2025-03-15T08:10:00Z"
+
+  # ==================== HEATING CONTROL ====================
+  /heating/{deviceId}/settings:
+    get:
+      tags: [Heating]
+      summary: Текущие настройки отопления
+      description: Возвращает настройки термостата (целевая температура, режим, расписание).
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatingSettings'
+              examples:
+                heating_settings:
+                  value:
+                    device_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                    target_temp: 22.0
+                    schedule: { "monday": [["08:00",22.0], ["22:00",18.0]] }
+                    mode: "auto"
+    put:
+      tags: [Heating]
+      summary: Обновить настройки отопления
+      description: Изменяет параметры управления отоплением (температуру, расписание, режим).
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_temp: { type: number, format: float }
+                schedule: { type: object }
+                mode: { type: string, enum: [auto, manual, off] }
+            examples:
+              set_temperature:
+                summary: Установить 23 градуса в ручном режиме
+                value:
+                  target_temp: 23.0
+                  mode: "manual"
+      responses:
+        '200':
+          description: Настройки обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+              examples:
+                success:
+                  value:
+                    message: "Heating settings updated"
+  /heating/{deviceId}/history:
+    get:
+      tags: [Heating]
+      summary: История работы отопления
+      description: Возвращает записи о фактической температуре и энергопотреблении за указанный период.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+          description: Начало периода (ISO 8601)
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+          description: Конец периода
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp: { type: string, format: date-time }
+                    actual_temp: { type: number }
+                    energy_used: { type: number }
+              examples:
+                history:
+                  summary: Часовая история
+                  value:
+                    - timestamp: "2025-03-15T08:00:00Z"
+                      actual_temp: 21.8
+                      energy_used: 0.45
+                    - timestamp: "2025-03-15T09:00:00Z"
+                      actual_temp: 22.1
+                      energy_used: 0.42
+
+  # ==================== LIGHTING CONTROL ====================
+  /lighting/{deviceId}/settings:
+    get:
+      tags: [Lighting]
+      summary: Настройки освещения
+      description: Возвращает текущие параметры освещения (яркость, цвет, расписание).
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LightingSettings'
+              examples:
+                light_settings:
+                  value:
+                    device_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"
+                    brightness: 75
+                    color: "#FFAA55"
+                    schedule: { "evening": {"start":"18:00","brightness":50} }
+    put:
+      tags: [Lighting]
+      summary: Изменить настройки освещения
+      description: Управляет яркостью, цветом или расписанием работы светильника.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                brightness: { type: integer, minimum: 0, maximum: 100 }
+                color: { type: string }
+                schedule: { type: object }
+            examples:
+              dim:
+                summary: Установить яркость 30%
+                value:
+                  brightness: 30
+      responses:
+        '200':
+          description: Настройки изменены
+          content:
+            application/json:
+              examples:
+                success:
+                  value:
+                    message: "Lighting settings updated"
+  /lighting/{deviceId}/history:
+    get:
+      tags: [Lighting]
+      summary: История изменений освещения
+      description: Показывает лог команд и изменений яркости/цвета.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp: { type: string, format: date-time }
+                    action: { type: string }
+                    brightness: { type: integer }
+              examples:
+                history:
+                  value:
+                    - timestamp: "2025-03-15T19:30:00Z"
+                      action: "set_brightness"
+                      brightness: 80
+                    - timestamp: "2025-03-15T20:00:00Z"
+                      action: "turn_off"
+                      brightness: 0
+
+  # ==================== GATE CONTROL ====================
+  /gate/{deviceId}/settings:
+    get:
+      tags: [Gate]
+      summary: Настройки ворот
+      description: Возвращает конфигурацию автоматических ворот (автозакрытие, текущий статус).
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateSettings'
+              examples:
+                gate_settings:
+                  value:
+                    device_id: "gate-123"
+                    auto_close: true
+                    status: "closed"
+    put:
+      tags: [Gate]
+      summary: Управление воротами
+      description: Отправляет команду открыть/закрыть ворота, а также изменяет настройку автозакрытия.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                auto_close: { type: boolean }
+                command: { type: string, enum: [open, close] }
+            examples:
+              open_gate:
+                summary: Открыть ворота
+                value:
+                  command: "open"
+      responses:
+        '200':
+          description: Команда принята
+          content:
+            application/json:
+              examples:
+                success:
+                  value:
+                    message: "Gate command sent"
+  /gate/{deviceId}/history:
+    get:
+      tags: [Gate]
+      summary: История действий с воротами
+      description: Лог открытий/закрытий ворот.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp: { type: string, format: date-time }
+                    action: { type: string }
+              examples:
+                gate_log:
+                  value:
+                    - timestamp: "2025-03-15T08:05:00Z"
+                      action: "open"
+                    - timestamp: "2025-03-15T08:07:30Z"
+                      action: "close"
+
+  # ==================== CCTV MONITORING ====================
+  /cameras:
+    get:
+      tags: [CCTV]
+      summary: Список камер
+      description: Возвращает все камеры, привязанные к устройствам пользователя (опционально фильтр по объекту).
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: estateId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Camera'
+              examples:
+                cameras:
+                  value:
+                    - id: "cam-001"
+                      device_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14"
+                      name: "Уличная камера 1"
+                      location: "Входная группа"
+                      stream_url: "rtsp://camera.local/stream1"
+  /cameras/{cameraId}/stream:
+    get:
+      tags: [CCTV]
+      summary: Получить URL видеопотока
+      description: Возвращает временную ссылку для просмотра RTSP/HLS потока с камеры.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: cameraId
+          in: path
+          required: true
+      responses:
+        '200':
+          description: Ссылка на поток
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stream_url: { type: string }
+              examples:
+                stream_url:
+                  value:
+                    stream_url: "https://stream.smarthome.example/live/cam-001/index.m3u8"
+  /cameras/{cameraId}/record:
+    post:
+      tags: [CCTV]
+      summary: Запись по требованию
+      description: Инициирует запись видео с камеры на заданное количество секунд. Видео сохраняется в MinIO.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: cameraId
+          in: path
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration_sec: { type: integer, minimum: 1, maximum: 3600, default: 30 }
+            examples:
+              record_1min:
+                summary: Записать 60 секунд
+                value:
+                  duration_sec: 60
+      responses:
+        '202':
+          description: Запись начата
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  record_id: { type: string, format: uuid }
+              examples:
+                accepted:
+                  value:
+                    record_id: "rec-123e4567-e89b-12d3-a456-426614174000"
+  /cameras/{cameraId}/recordings:
+    get:
+      tags: [CCTV]
+      summary: Список записей камеры
+      description: Возвращает метаданные о ранее записанных видеофайлах за период.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: cameraId
+          in: path
+          required: true
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VideoRecord'
+              examples:
+                recordings_list:
+                  value:
+                    - id: "rec-123e4567-e89b-12d3-a456-426614174000"
+                      camera_id: "cam-001"
+                      start_time: "2025-03-15T10:00:00Z"
+                      end_time: "2025-03-15T10:01:00Z"
+                      size_bytes: 5242880
+                      download_url: "https://minio.smarthome.example/videos/rec-123.mp4?X-Amz-Signature=..."
+  /recordings/{recordingId}/download:
+    get:
+      tags: [CCTV]
+      summary: Скачать запись
+      description: Выполняет редирект на временную предподписанную ссылку MinIO для скачивания видеофайла.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: recordingId
+          in: path
+          required: true
+      responses:
+        '302':
+          description: Редирект на URL файла
+          headers:
+            Location:
+              schema: { type: string }
+              description: Временная ссылка на скачивание
+        '404':
+          description: Запись не найдена
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+    RealEstate:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        name: { type: string }
+        address: { type: string }
+        created_at: { type: string, format: date-time }
+    Device:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        real_estate_id: { type: string, format: uuid }
+        type: { type: string, enum: [heater, light, gate, camera] }
+        name: { type: string }
+        status: { type: string, enum: [online, offline, error] }
+        last_seen: { type: string, format: date-time }
+    DeviceMetric:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        device_id: { type: string, format: uuid }
+        metric_type: { type: string, enum: [temperature, humidity, power] }
+        value: { type: string }
+        timestamp: { type: string, format: date-time }
+    HeatingSettings:
+      type: object
+      properties:
+        device_id: { type: string, format: uuid }
+        target_temp: { type: number }
+        schedule: { type: object }
+        mode: { type: string }
+    LightingSettings:
+      type: object
+      properties:
+        device_id: { type: string, format: uuid }
+        brightness: { type: integer }
+        color: { type: string }
+        schedule: { type: object }
+    GateSettings:
+      type: object
+      properties:
+        device_id: { type: string, format: uuid }
+        auto_close: { type: boolean }
+        status: { type: string }
+    Camera:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        device_id: { type: string, format: uuid }
+        name: { type: string }
+        location: { type: string }
+        stream_url: { type: string }
+    VideoRecord:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        camera_id: { type: string, format: uuid }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        size_bytes: { type: integer }
+        download_url: { type: string }

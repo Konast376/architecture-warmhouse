@@ -1,0 +1,77 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Клиентские приложения
+Container(mobile_app, "Мобильное приложение", "iOS/Android", "Интерфейс управления")
+Container(web_app, "Веб-версия", "React/Vue", "Интерфейс управления")
+
+' API Gateway Service с компонентами
+System_Boundary(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения") {
+    Component(auth_controller, "Auth Controller", "Go", "Контроллер авторизации/регистрации")
+    Component(real_estate_controller, "Real Estate Controller", "Go", "Контроллер объектов недвижимости")
+    Component(device_registry_controller, "Device Registry Controller", "Go", "Контроллер реестра устройств")
+    Component(heating_controller, "Heating Controller", "Go", "Контроллер управления отоплением")
+    Component(lighting_controller, "Lighting Controller", "Go", "Контроллер управления освещением")
+    Component(gate_controller, "Gate Controller", "Go", "Контроллер управления воротами")
+    Component(cctv_monitoring_controller, "CCTV Monitoring Controller", "Go", "Контроллер видеонаблюдения")
+
+    ' Клиенты для взаимодействия с сервисами
+    Component(auth_client, "Auth Service Client", "REST Client", "Взаимодействие с сервисом аутентификации")
+    Component(real_estate_client, "Real Estate Service Client", "REST Client", "Взаимодействие с сервисом недвижимости")
+    Component(device_registry_client, "Device Registry Service Client", "REST Client", "Взаимодействие с сервисом реестра устройств")
+    Component(heating_client, "Heating Control Client", "REST Client", "Взаимодействие с сервисом отопления")
+    Component(lighting_client, "Lighting Control Client", "REST Client", "Взаимодействие с сервисом освещения")
+    Component(gate_client, "Gate Control Client", "REST Client", "Взаимодействие с сервисом ворот")
+    Component(cctv_monitoring_client, "CCTV Monitoring Client", "REST Client", "Взаимодействие с сервисом видеонаблюдения")
+}
+
+' Внешние сервисы
+Container(auth_service, "Сервис аутентификации", "Go", "OAuth2, JWT")
+Container(real_estate_service, "Управление объектами недвижимости", "Go", "Объекты недвижимости")
+Container(device_registry_service, "Реестр устройств объекта", "Go", "Конфигурация, статус, показатели зарегистрированных устройств"")
+Container(heating_control, "Управление отоплением", "Go", "Логика управления отоплением")
+Container(lighting_control, "Управление освещением", "Go", "Включение/выключение света")
+Container(gate_control, "Управление воротами", "Go", "Открытие/закрытие ворот")
+Container(cctv_monitoring, "Видеонаблюдение", "Python", "Потоковое видео, хранение записей")
+
+
+' Пользователь обращается к функционалу через контроллеры
+Rel(mobile_app, auth_controller, "")
+Rel(web_app, auth_controller, "")
+Rel(mobile_app, real_estate_controller, "")
+Rel(web_app, real_estate_controller, "")
+Rel(mobile_app, device_registry_controller, "")
+Rel(web_app, device_registry_controller, "")
+Rel(mobile_app, heating_controller, "")
+Rel(web_app, heating_controller, "")
+Rel(mobile_app, lighting_controller, "")
+Rel(web_app, lighting_controller, "")
+Rel(mobile_app, gate_controller, "")
+Rel(web_app, gate_controller, "")
+Rel(mobile_app, cctv_monitoring_controller, "")
+Rel(web_app, cctv_monitoring_controller, "")
+
+' Контроллеры обращаются к клиентам
+auth_controller --> auth_client
+real_estate_controller --> real_estate_client
+real_estate_controller --> device_registry_client
+device_registry_controller --> device_registry_client
+heating_controller --> heating_client
+heating_controller --> device_registry_client
+lighting_controller --> lighting_client
+lighting_controller --> device_registry_client
+gate_controller --> gate_client
+gate_controller --> device_registry_client
+cctv_monitoring_controller --> cctv_monitoring_client
+cctv_monitoring_controller --> device_registry_client
+
+' Клиенты обращаются к сервисам
+auth_client --> auth_service
+real_estate_client --> real_estate_service
+device_registry_client --> device_registry_service
+heating_client --> heating_control
+lighting_client --> lighting_control
+gate_client --> gate_control
+cctv_monitoring_client --> cctv_monitoring
+
+@enduml

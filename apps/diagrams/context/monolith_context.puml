@@ -1,0 +1,17 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(users, "Пользователи", "Взаимодействуют с системой через мобильное или веб-приложение")
+System_Ext(sensor, "Датчик температуры", "Передаёт данные о температуре, получает команды управления")
+
+System_Boundary(message_processing_system, "Система Умный дом") {
+   System(heatingControl, "Управление отоплением", "Реализует логику включения/выключения и регулирования")
+   System(temperatureMonitoring, "Мониторинг температуры", "Отвечает за сбор, хранение и предоставление данных о температуре")
+}
+
+users -> heatingControl : "Управляет режимами"
+users -> temperatureMonitoring : "Просматривает данные"
+heatingControl -> sensor : "Отправляет команды управления"
+temperatureMonitoring -> sensor : "Запрашивает температуру"
+
+@enduml

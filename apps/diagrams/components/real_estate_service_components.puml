@@ -1,0 +1,21 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения")
+
+System_Boundary(real_estate_service, "Real Estate Service", "Go", "Сервис объектов недвижимости") {
+    Component(real_estate_controller, "Real Estate Controller", "Go", "Контроллер авторизации")
+    Component(real_estate_service_component, "Real Estate Service Component", "Go", "Сервис, реализующий логику работы с объектами недвижимости")
+    Component(device_registry_client, "Device Registry Client", "Go", "Клиент сервиса реестра устройств")
+}
+
+Container(device_registry_service, "Реестр устройств объекта", "Go", "Конфигурация, статус, показатели зарегистрированных устройств")
+ContainerDb(db_estate_service, "БД объектов недвижимости", "PostgreSQL", "Объекты недвижимости")
+
+Rel(api_gateway_service, real_estate_controller, "")
+Rel(real_estate_controller, real_estate_service_component, "")
+Rel(real_estate_service_component, device_registry_client, "")
+Rel(device_registry_client, device_registry_service, "")
+real_estate_service_component <--> db_estate_service : ""
+
+@enduml
