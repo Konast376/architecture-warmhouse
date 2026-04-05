@@ -1,6 +1,3 @@
--- Create the database if it doesn't exist
-CREATE DATABASE smarthome;
-
 -- Connect to the database
 \c smarthome;
 
@@ -21,3 +18,8 @@ CREATE TABLE IF NOT EXISTS sensors (
 CREATE INDEX IF NOT EXISTS idx_sensors_type ON sensors(type);
 CREATE INDEX IF NOT EXISTS idx_sensors_location ON sensors(location);
 CREATE INDEX IF NOT EXISTS idx_sensors_status ON sensors(status);
+
+INSERT INTO sensors (name, type, location, value, unit, status)
+VALUES 
+('first sensor', 'temperature', 'Living Room', 24.5, '°C', 'active'),
+('second sensor', 'temperature', 'Bedroom', 25.2, '°C', 'active');

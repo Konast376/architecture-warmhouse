@@ -1,0 +1,25 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения")
+Container(real_estate_service, "Real Estate Service", "Go", "Сервис объектов недвижимости")
+Container(message_broker, "Брокер сообщений", "RabbitMQ ", "Асинхронное взаимодействие")
+
+System_Boundary(device_registry_service, "Device Registry Service", "Go", "Конфигурация, статус, показатели зарегистрированных устройств") {
+    Component(register_controller, "Register Controller", "Go", "Контроллер регистрации устройств объекта недвижимости")
+    Component(devices_controller, "Devices Controller", "Go", "Контроллер чтения списка устройств объекта недвижимости")
+    Component(event_listener, "Event Listener", "Go", "Слушатель событий в очереди")
+    Component(device_registry_service_component, "Real Estate Service Component", "Go", "Сервис, реализующий логику работы с устройствами (регистрация, получение списка, изменение показателей)")
+}
+
+ContainerDb(db_device_registry, "БД Реестра устройств", "PostgreSQL", "Устройства, статусы, показатели")
+
+Rel(api_gateway_service, register_controller, "")
+Rel(real_estate_service, devices_controller, "")
+Rel(register_controller, device_registry_service_component, "")
+Rel(devices_controller, device_registry_service_component, "")
+Rel(message_broker, event_listener, "")
+Rel(event_listener, device_registry_service_component, "")
+device_registry_service_component <--> db_device_registry : ""
+
+@enduml

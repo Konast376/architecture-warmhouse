@@ -1,0 +1,51 @@
+@startuml
+!theme plain
+title C4 Code Diagram – Управление воротами
+
+' Классы, соответствующие компонентам
+class "API Gateway Service" {
+  + OpenGate(gateId)
+  + CloseGate(gateId)
+}
+
+class "Gate Control Controller" {
+  + OpenGate(gateId)
+  + CloseGate(gateId)
+  - validateRequest()
+}
+
+class "Gate Control Component" {
+  + ExecuteOpenSequence(gateId)
+  + ExecuteCloseSequence(gateId)
+  + SaveHistory(gateId, action, result)
+}
+
+class "Device Client" {
+  + SendOpenCommand(deviceIP)
+  + SendCloseCommand(deviceIP)
+  + ReadDeviceStatus(deviceIP)
+}
+
+' Внешняя система (интерфейс)
+class "<<external>>\nSmart Device" {
+  + Open()
+  + Close()
+  + GetStatus()
+}
+
+' БД как класс-репозиторий
+class "GateRepository" {
+  + SaveSettings(gateID, settings)
+  + LoadSettings(gateID)
+  + SaveEvent(event)
+  + GetHistory(gateID)
+}
+
+' Зависимости
+"API Gateway Service" --> "Gate Control Controller" : uses
+"Gate Control Controller" --> "Gate Control Component" : uses
+"Gate Control Component" --> "Device Client" : uses
+"Device Client" --> "<<external>>\nSmart Device" : communicates via HTTP
+"Gate Control Component" --> "GateRepository" : uses
+
+@enduml

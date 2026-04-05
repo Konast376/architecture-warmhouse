@@ -1,0 +1,23 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения")
+Container(file_storage, "Хранилище файлов", "MinIO", "Видео, бэкапы, медиафайлы")
+System_Ext(device, "Умные устройства партнeров", "")
+
+System_Boundary(cctv_monitoring, "Видеонаблюдение", "Python", "Потоковое видео, хранение записей") {
+    Component(cctv_monitoring_controller, "CCTV Monitoring Controller", "Go", "Контроллер управления видеонаблдюдением")
+    Component(cctv_monitoring_component, "CCTV Monitoring Component", "Go", "Сервис, реализующий логику работы с устройством видеонаблюдения")
+    Component(device_client, "Device Client", "Go", "Клиент управления устройством видеонаблюдения")
+}
+
+ContainerDb(db_cctv, "БД Видеонаблюдения", "PostgreSQL", "Метаданные видео")
+
+Rel(api_gateway_service, cctv_monitoring_controller, "")
+Rel(cctv_monitoring_controller, cctv_monitoring_component, "")
+Rel(cctv_monitoring_component, device_client, "")
+Rel(device_client, device, "")
+Rel(cctv_monitoring_component, file_storage, "")
+Rel(cctv_monitoring_component, db_cctv, "")
+
+@enduml

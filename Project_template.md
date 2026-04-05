@@ -1,60 +1,49 @@
 # Project_template
 
-Это шаблон для решения проектной работы. Структура этого файла повторяет структуру заданий. Заполняйте его по мере работы над решением.
-
 # Задание 1. Анализ и планирование
 
 <aside>
 
 Чтобы составить документ с описанием текущей архитектуры приложения, можно часть информации взять из описания компании и условия задания. Это нормально.
 
-</aside
+</aside>
 
 ### 1. Описание функциональности монолитного приложения
 
 **Управление отоплением:**
 
-- Пользователи могут…
-- Система поддерживает…
-- …
+- Пользователи могут удалённо включать/выключать отопление в своих домах.
 
 **Мониторинг температуры:**
 
-- Пользователи могут…
-- Система поддерживает…
-- …
+- Система получает данные о температуре с датчиков, установленных в домах. 
+- Пользователи могут просматривать текущую температуру в своих домах через веб-интерфейс.
 
 ### 2. Анализ архитектуры монолитного приложения
 
 Перечислите здесь основные особенности текущего приложения: какой язык программирования используется, какая база данных, как организовано взаимодействие между компонентами и так далее.
 
+Язык программирования: Go
+База данных: PostgreSQL (взаимодействие с БД реализовано с помощью библиотеки pgxpool)
+Архитектура: Монолитная, все компоненты системы (обработка запросов, бизнес-логика, работа с данными) находятся в рамках одного приложения.
+Взаимодействие: Синхронное, запросы обрабатываются последовательно.
+
+
 ### 3. Определение доменов и границы контекстов
 
-Опишите здесь домены, которые вы выделили.
+- Управление отоплением (управление отоплением в доме: включение/выключение, изменение режимов и т.д.)
+- Мониторинг температуры (сбор, хранение и предоставление данных о температуре в доме)
 
 ### **4. Проблемы монолитного решения**
 
-- …
-- …
-- …
-
-Если вы считаете, что текущее решение не вызывает проблем, аргументируйте свою позицию.
+Масштабируемость: Ограничена, так как монолит сложно масштабировать по частям.
+Развертывание: Требует остановки всего приложения.
 
 ### 5. Визуализация контекста системы — диаграмма С4
 
 Добавьте сюда диаграмму контекста в модели C4.
 
-Чтобы добавить ссылку в файл Readme.md, нужно использовать синтаксис Markdown. Это делают так:
-
-```markdown
-[Текст ссылки](URL)
-```
-
-Замените `Текст ссылки` текстом, который хотите использовать для ссылки. Вместо `URL` вставьте адрес, на который должна вести ссылка. Например:
-
-```markdown
-[Посетите Яндекс](https://ya.ru/)
-```
+[Диаграмма контекста монолита](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/context/monolith_context.puml)
 
 # Задание 2. Проектирование микросервисной архитектуры
 
@@ -62,19 +51,26 @@
 
 **Диаграмма контейнеров (Containers)**
 
-Добавьте диаграмму.
+[Диаграмма контейнеров в микросервисной архитектуре](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/containers/microservices_containers.puml)
 
 **Диаграмма компонентов (Components)**
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+[Диаграмма компонента api-gateway-service](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/api_gateway_service_components.puml)
+[Диаграмма компонента auth-service](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/auth_service_components.puml)
+[Диаграмма компонента cctv-monitoring](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/cctv_monitoring_components.puml)
+[Диаграмма компонента device-registry-service](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/device_registry_components.puml)
+[Диаграмма компонента real-estate-service](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/real_estate_service_components.puml)
+[Диаграмма компонента gate-control](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/gate_control_components.puml)
+[Диаграмма компонента heating-control](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/heating_control_components.puml)
+[Диаграмма компонента lighting-control](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/components/lighting_control_components.puml)
 
 **Диаграмма кода (Code)**
 
-Добавьте одну диаграмму или несколько.
+[Диаграмма кода gate-control](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/code/gate_control_code.puml)
 
 # Задание 3. Разработка ER-диаграммы
 
-Добавьте сюда ER-диаграмму. Она должна отражать ключевые сущности системы, их атрибуты и тип связей между ними.
+[ER диаграмма](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/diagrams/ER/ER_diagram.puml)
 
 # Задание 4. Создание и документирование API
 
@@ -82,9 +78,16 @@
 
 Укажите, какой тип API вы будете использовать для взаимодействия микросервисов. Объясните своё решение.
 
+Для взаимодействия пользователя с элементами приложения выбрал REST API, т.к. пользователю требуется управление устройствами в реальном времени.
+Для сбора метрик умных устройств выбран AsyncAPI. Это позволит обновлять данные (например, изменение температуры) в фоновом режиме.
+
 ### 2. Документация API
 
 Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+
+[SWAGGER example](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/documentation/swagger_example.yaml)
+
+[AsyncApi example](https://github.com/Konast376/architecture-warmhouse/blob/warmhouse/apps/documentation/async-api-example.json)
 
 # Задание 5. Работа с docker и docker-compose
 

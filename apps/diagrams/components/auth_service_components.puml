@@ -1,0 +1,25 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения")
+
+System_Boundary(auth_service, "Auth Service", "Go", "Сервис авторизации/регистрации") {
+    Component(sign_controller, "Sign In Controller", "Go", "Контроллер авторизации")
+    Component(registry_controller, "Registry Controller", "Go", "Контроллер регистрации пользователя")
+    Component(reset_password_controller, "Reset Password Controller", "Go", "Контроллер сброса пароля")
+
+    Component(security_component, "Security Component", "", "Компонент, реализующий логику регистрации, авторизации, смены пароля и пр.")
+}
+
+ContainerDb(db_auth, "БД Auth", "PostgreSQL", "Данные пользователей, токены")
+
+Rel(api_gateway_service, sign_controller, "")
+Rel(api_gateway_service, registry_controller, "")
+Rel(api_gateway_service, reset_password_controller, "")
+Rel(sign_controller, security_component, "")
+Rel(registry_controller, security_component, "")
+Rel(reset_password_controller, security_component, "")
+
+security_component <--> db_auth : ""
+
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(api_gateway_service, "API Gateway Service", "Go", "Точка входа приложения")
+System_Ext(device, "Умные устройства партнeров", "")
+
+System_Boundary(gate_control, "Управление воротами", "Go", "Открытие/закрытие ворот") {
+    Component(gate_control_controller, "Lighting Controller", "Go", "Контроллер управления воротами")
+    Component(gate_control_component, "Lighting Control Component", "Go", "Сервис, реализующий логику работы с устройством открытия/закрытия ворот")
+    Component(device_client, "Device Client", "Go", "Клиент управления устройством открытия/закрытия ворот")
+}
+
+ContainerDb(db_gate, "БД Ворот", "PostgreSQL", "Настройки и история использования")
+
+Rel(api_gateway_service, gate_control_controller, "")
+Rel(gate_control_controller, gate_control_component, "")
+Rel(gate_control_component, device_client, "")
+Rel(device_client, device, "")
+Rel(gate_control_component, db_gate, "")
+
+@enduml
